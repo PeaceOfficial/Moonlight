@@ -1,0 +1,22 @@
+{
+  "name": "fakeprofile",
+  "version": "1.0.0",
+  "main": "dist/moonlight.js",
+  "scripts": {
+    "dev": "tsx watch src/moonlight.ts",
+    "build": "tsc",
+    "start": "node ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "tsx": "^4.19.1"
+  }
+}
