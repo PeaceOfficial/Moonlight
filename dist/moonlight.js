@@ -66,6 +66,7 @@ const setupDatabase = async () => {
         await db.query(`
       CREATE TABLE IF NOT EXISTS fakeProfile (
         id VARCHAR(255) PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
         profile_effect VARCHAR(255),
         banner VARCHAR(512),
         avatar VARCHAR(512),
@@ -74,17 +75,29 @@ const setupDatabase = async () => {
         decoration_animated BOOLEAN
       )
     `);
-        console.log(`[DB] >> Database '${DB_NAME}' setup complete & has found.`);
+        console.log(`[ Moonlight 🌙 ] >> (${version}) : Database '${DB_NAME}' - Is now online...`);
     }
     catch (err) {
-        console.error(`[DB] >> Error setting up the database:`, err);
+        console.error(`[ Moonlight 🌙 ] >> (${version}) : Error setting up the database:`, err);
     }
 };
-// Register the /ping command
+// Register the commands
 const commands = [
     {
         name: 'ping',
         description: 'Replies with Pong!',
+    },
+    {
+        name: 'saveuserid',
+        description: 'Saves the provided username and your User ID to the database',
+        options: [
+            {
+                type: 3, // STRING type
+                name: 'user',
+                description: 'The username to save',
+                required: true,
+            },
+        ],
     },
 ];
 // Register commands when the bot is ready
@@ -111,6 +124,23 @@ moonlight.on('interactionCreate', async (interaction) => {
     const { commandName } = commandInteraction;
     if (commandName === 'ping') {
         await commandInteraction.reply('🏓 Pong!');
+    }
+    else if (commandName === 'saveuserid') {
+        const options = commandInteraction.options;
+        const username = options.getString('user'); // Get the username from the command
+        const userId = interaction.user.id; // Get the User ID from the interaction
+        try {
+            // Save the User ID and username to the database
+            await db.query(`
+        INSERT INTO fakeProfile (id, user_id, profile_effect) VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE user_id = ?, profile_effect = ?
+      `, [userId, userId, username, userId, username]); // Use ON DUPLICATE KEY to update if exists
+            await commandInteraction.reply(`Your User ID ${userId} and username "${username}" have been saved!`);
+        }
+        catch (err) {
+            console.error(`[ Moonlight 🌙 ] >> (${version}) : Error saving user ID:`, err);
+            await commandInteraction.reply('There was an error saving your User ID. Please try again.');
+        }
     }
 });
 // Login to Discord with your bot token

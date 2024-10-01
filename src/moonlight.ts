@@ -1,5 +1,5 @@
 // Import necessary classes from discord.js
-import { Client, GatewayIntentBits, CommandInteraction, Interaction, REST, Routes } from 'discord.js';
+import { Client, GatewayIntentBits, CommandInteraction, Interaction, REST, Routes, CommandInteractionOptionResolver } from 'discord.js';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as dotenv from 'dotenv';
@@ -44,14 +44,19 @@ const setupDatabase = async () => {
 
     // Create a users table if it doesn't exist
     await db.query(`
-      CREATE TABLE IF NOT EXISTS fakeProfile (
-        id VARCHAR(255) PRIMARY KEY,
-        profile_effect VARCHAR(255),
-        banner VARCHAR(512),
+      CREATE TABLE IF NOT EXISTS users (
+        userid VARCHAR(512),
+        profile_effect VARCHAR(512),
         avatar VARCHAR(512),
-        decoration_asset VARCHAR(255),
-        decoration_skuId VARCHAR(255),
-        decoration_animated BOOLEAN
+        banner VARCHAR(512),
+        badges VARCHAR(512),
+        badges_icon VARCHAR(512),
+        badges_description VARCHAR(512),
+        badges_id VARCHAR(512),
+        decoration VARCHAR(512),
+        decoration_asset VARCHAR(512),
+        decoration_skuId VARCHAR(512),
+        decoration_animated VARCHAR(512)
       )
     `);
 
@@ -60,15 +65,6 @@ const setupDatabase = async () => {
     console.error(`[ Moonlight 🌙 ] >> (${version}) : Error setting up the database:`, err);
   }
 };
-
-
-// Register the /ping command
-const commands = [
-  {
-    name: 'ping',
-    description: 'Replies with Pong!',
-  },
-];
 
 // Register commands when the bot is ready
 moonlight.once('ready', async () => {
@@ -92,6 +88,18 @@ moonlight.once('ready', async () => {
   }
 });
 
+// Register the /ping command
+const commands = [
+  {
+    name: 'ping',
+    description: 'Replies with Pong!',
+  },
+  {
+    name: "save",
+    description: 'save test'
+  }
+];
+
 // Handle interactions (commands, buttons, etc.)
 moonlight.on('interactionCreate', async (interaction: Interaction) => {
   // Check if the interaction is a CommandInteraction
@@ -104,6 +112,25 @@ moonlight.on('interactionCreate', async (interaction: Interaction) => {
   if (commandName === 'ping') {
     await commandInteraction.reply('🏓 Pong!');
   }
+
+  else if (commandName === 'save') 
+    {
+    const options = commandInteraction.options as CommandInteractionOptionResolver;
+    const userId = interaction.user.id; // Get the User ID from the interaction
+    try {
+      await db.query(`
+        INSERT INTO \`users\` 
+        (userid)
+        VALUES 
+        ('${userId}');
+      `);
+      await commandInteraction.reply(`Your User ID ${userId} saved!`);
+    } catch (err) {
+      console.error(`[ Moonlight 🌙 ] >> (${version}) : Error saving user ID:`, err);
+      await commandInteraction.reply('There was an error saving your User ID. Please try again.');
+    }
+  }
+
 });
 
 // Login to Discord with your bot token
