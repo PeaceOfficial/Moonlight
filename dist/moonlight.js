@@ -32,6 +32,7 @@ const fs_1 = require("fs");
 const path_1 = require("path");
 const dotenv = __importStar(require("dotenv"));
 const promise_1 = __importDefault(require("mysql2/promise")); // Import mysql2/promise for async MySQL connection
+const ngrok_1 = __importDefault(require("@ngrok/ngrok")); // Import ngrok for tunneling
 // Load environment variables
 dotenv.config({ path: "./vars/.env" }); // Adjust path to ensure correct .env file loading
 // Read the package.json file for version
@@ -47,11 +48,14 @@ const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_NAME = process.env.DB_NAME;
 const DB_PORT = process.env.DB_PORT;
+const NGROK_AUTH_TOKEN = process.env.NGROK_AUTH_TOKEN;
+const NGROK_PORT = process.env.NGROK_PORT;
 // Create a new client instance with intents
 const moonlight = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds] });
 // MySQL connection setup
 let db;
 const setupDatabase = async () => {
+    await setupDatabase(); // Setup the MySQL database
     try {
         db = await promise_1.default.createConnection({
             host: DB_HOST,
@@ -64,15 +68,19 @@ const setupDatabase = async () => {
         await db.query(`USE ${DB_NAME}`);
         // Create a users table if it doesn't exist
         await db.query(`
-      CREATE TABLE IF NOT EXISTS fakeProfile (
-        id VARCHAR(255) PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        profile_effect VARCHAR(255),
-        banner VARCHAR(512),
+      CREATE TABLE IF NOT EXISTS users (
+        userid VARCHAR(512),
+        profile_effect VARCHAR(512),
         avatar VARCHAR(512),
-        decoration_asset VARCHAR(255),
-        decoration_skuId VARCHAR(255),
-        decoration_animated BOOLEAN
+        banner VARCHAR(512),
+        badges VARCHAR(512),
+        badges_icon VARCHAR(512),
+        badges_description VARCHAR(512),
+        badges_id VARCHAR(512),
+        decoration VARCHAR(512),
+        decoration_asset VARCHAR(512),
+        decoration_skuId VARCHAR(512),
+        decoration_animated VARCHAR(512)
       )
     `);
         console.log(`[ Moonlight 🌙 ] >> (${version}) : Database '${DB_NAME}' - Is now online...`);
@@ -81,30 +89,26 @@ const setupDatabase = async () => {
         console.error(`[ Moonlight 🌙 ] >> (${version}) : Error setting up the database:`, err);
     }
 };
-// Register the commands
-const commands = [
-    {
-        name: 'ping',
-        description: 'Replies with Pong!',
-    },
-    {
-        name: 'saveuserid',
-        description: 'Saves the provided username and your User ID to the database',
-        options: [
-            {
-                type: 3, // STRING type
-                name: 'user',
-                description: 'The username to save',
-                required: true,
-            },
-        ],
-    },
-];
+// Start ngrok tunnel
+const startNgrok = async () => {
+    await startNgrok(); // Start ngrok tunneling
+    try {
+        // Authenticate ngrok using token
+        if (NGROK_AUTH_TOKEN) {
+            await ngrok_1.default.authtoken(NGROK_AUTH_TOKEN);
+        }
+        // Start ngrok on the default port 80 (you can adjust this based on your server)
+        const url = await ngrok_1.default.connect(Number(NGROK_PORT));
+        console.log(`[ Moonlight 🌙 ] >> Ngrok Tunnel Started: ${url}`);
+        // You can use this public URL to expose your bot/server to the internet
+    }
+    catch (error) {
+        console.error(`[ Moonlight 🌙 ] >> Error starting ngrok tunnel:`, error);
+    }
+};
 // Register commands when the bot is ready
 moonlight.once('ready', async () => {
     console.log(`[ Moonlight 🌙 ] >> (${version}) : Is now online...`);
-    // Setup the MySQL database
-    await setupDatabase();
     const rest = new discord_js_1.REST({ version: '10' }).setToken(TOKEN);
     try {
         // Register guild-specific commands
@@ -115,27 +119,37 @@ moonlight.once('ready', async () => {
         console.error(error);
     }
 });
+// Register the /ping command
+const commands = [
+    {
+        name: 'ping',
+        description: 'Replies with Pong!',
+    },
+    {
+        name: "save",
+        description: 'save test'
+    }
+];
 // Handle interactions (commands, buttons, etc.)
 moonlight.on('interactionCreate', async (interaction) => {
-    // Check if the interaction is a CommandInteraction
     if (!interaction.isCommand())
-        return;
+        return; // Check if the interaction is a CommandInteraction
     const commandInteraction = interaction;
     const { commandName } = commandInteraction;
     if (commandName === 'ping') {
         await commandInteraction.reply('🏓 Pong!');
     }
-    else if (commandName === 'saveuserid') {
+    else if (commandName === 'save') {
         const options = commandInteraction.options;
-        const username = options.getString('user'); // Get the username from the command
         const userId = interaction.user.id; // Get the User ID from the interaction
         try {
-            // Save the User ID and username to the database
             await db.query(`
-        INSERT INTO fakeProfile (id, user_id, profile_effect) VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE user_id = ?, profile_effect = ?
-      `, [userId, userId, username, userId, username]); // Use ON DUPLICATE KEY to update if exists
-            await commandInteraction.reply(`Your User ID ${userId} and username "${username}" have been saved!`);
+        INSERT INTO \`users\` 
+        (userid)
+        VALUES 
+        ('${userId}');
+      `);
+            await commandInteraction.reply(`Your User ID ${userId} saved!`);
         }
         catch (err) {
             console.error(`[ Moonlight 🌙 ] >> (${version}) : Error saving user ID:`, err);
