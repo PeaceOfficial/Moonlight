@@ -1,16 +1,16 @@
 // Import necessary classes from discord.js
 import { Client, GatewayIntentBits, CommandInteraction, Interaction, REST, Routes, CommandInteractionOptionResolver } from 'discord.js';
+import { exec } from 'child_process';
 import { readFileSync } from 'fs';
 import path, { join } from 'path';
 import * as dotenv from 'dotenv';
 
 // Import connections modules
-import express from 'express'; // Import express for apach connection - (webfolder)
 import mysql from 'mysql2/promise'; // Import mysql2/promise for async MySQL connection - (database, mysql)
 import ngrok from 'ngrok'; // Import ngrok for tunneling - (domain, api)
 
 // Load environment variables
-dotenv.config({ path: "./vars/.env" }); // Adjust path to ensure correct .env file loading
+dotenv.config({ path: "./vars/.env" });
 
 // Read the package.json file for version
 const packageJsonPath = join(__dirname, '..', 'package.json');
@@ -23,7 +23,6 @@ const CLIENT_NAME = process.env.CLIENT_NAME;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_NAME = process.env.GUILD_NAME;
 const GUILD_ID = process.env.GUILD_ID;
-const APACHE_PORT = process.env.APACHE_PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
@@ -36,17 +35,10 @@ const NGROK_PORT = process.env.NGROK_PORT;
 // Create a new client instance with intents
 const moonlight = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-// Apache connection setup
-const apache = express();
+console.log(`[ Moonlight 🌙 ] >> Apache: Connection created trough "httpd.exe" | Listening on: (80) - port... ✅`);
+console.log(`[ Moonlight 🌙 ] >> Mysql: Connected created trough "mysqld.exe" | Listening on: (3306) - port... ✅`);
 
-apache.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the "public" folder
-
-// Start the server
-apache.listen(APACHE_PORT, () => {
-  console.log(`[ Moonlight 🌙 ] >> Apache: Connected and Listening on: (${APACHE_PORT}) - port... ✅`);
-});
-
-// MySQL connection setup
+///////////////////////////////////////////////////////////////////////////////// - MySQL connection setup
 let db: mysql.Connection;
 
 const setupDatabase = async () => {
@@ -80,13 +72,14 @@ const setupDatabase = async () => {
       )
     `);
 
+    console.log(``);
     console.log(`[ Moonlight 🌙 ] >> Mysql: "Succesfully" - Connected to the "${DB_NAME}" - database... ✅`);
   } catch (err) {
     console.error(`[ Moonlight 🌙 ] >> Mysql: "Error" - Setting up the database: "${err}"❌`);
   }
 };
 
-// Start ngrok tunnel
+///////////////////////////////////////////////////////////////////////////////// - Start Ngrok
 const startNgrok = async () => {
 
   try {
@@ -101,7 +94,7 @@ const startNgrok = async () => {
     });
 
         
-    // Tunnel 
+    // Ngrok catch error && default log part
     console.log(``);
     console.log(`[ Moonlight 🌙 ] >> Ngrok: "Succesfully" - Connected to the "tunnel" <-> "${ngrokUrl}" - domain... ✅`);
     console.log(`[ Moonlight 🌙 ] >> Ngrok: "Succesfully" - Deployed on the "domain" <-> "http://${NGROK_HOST}:${NGROK_PORT}" - host... ✅`);
@@ -122,7 +115,7 @@ const commands = [
   }
 ];
 
-// Handle interactions (commands, buttons, etc.)
+///////////////////////////////////////////////////////////////////////////////// - Handle interactions (commands, buttons, etc.)
 moonlight.on('interactionCreate', async (interaction: Interaction) => {
 
   if (!interaction.isCommand()) return; // Check if the interaction is a CommandInteraction
@@ -155,7 +148,7 @@ moonlight.on('interactionCreate', async (interaction: Interaction) => {
 
 });
 
-///////////////////////////////////////////////////////////////////////////////// START FUNCTIONS
+///////////////////////////////////////////////////////////////////////////////// - Ready Function
 
 // Register commands when the bot is ready
 moonlight.once('ready', async () => {
@@ -179,13 +172,6 @@ moonlight.once('ready', async () => {
     console.log(``);
     console.log(`[ Moonlight 🌙 ] >> Connection: "Succesfully" - Connected to "${GUILD_NAME} - ${GUILD_ID}" - server... 🚀`);
     console.log(``);
-
-/*     console.log(`[ Moonlight 🌙 ] >> Name: "${CLIENT_NAME}"`);
-    console.log(`[ Moonlight 🌙 ] >> Version: "${version}"`);
-    console.log(`[ Moonlight 🌙 ] >> Server: "${GUILD_NAME} - ${GUILD_ID}"`);
-    console.log(`[ Moonlight 🌙 ] >> Client: "${CLIENT_NAME} - ${CLIENT_ID}"`); */
-
-    //console.log(`[ Moonlight 🌙 ] >> Connection: "${CLIENT_NAME}" ` + `| ` + `Version: "${version}"` + ` has been connected to the ` + ` (${GUILD_ID}) ` + `server... 🚀`);
   } catch (error) {
     console.error(error);
   }

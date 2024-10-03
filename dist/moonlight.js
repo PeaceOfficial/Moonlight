@@ -29,10 +29,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // Import necessary classes from discord.js
 const discord_js_1 = require("discord.js");
 const fs_1 = require("fs");
-const path_1 = require("path");
+const path_1 = __importStar(require("path"));
 const dotenv = __importStar(require("dotenv"));
-const promise_1 = __importDefault(require("mysql2/promise")); // Import mysql2/promise for async MySQL connection
-const ngrok_1 = __importDefault(require("@ngrok/ngrok")); // Import ngrok for tunneling
+// Import connections modules
+const express_1 = __importDefault(require("express")); // Import express for apach connection - (webfolder)
+const promise_1 = __importDefault(require("mysql2/promise")); // Import mysql2/promise for async MySQL connection - (database, mysql)
+const ngrok_1 = __importDefault(require("ngrok")); // Import ngrok for tunneling - (domain, api)
 // Load environment variables
 dotenv.config({ path: "./vars/.env" }); // Adjust path to ensure correct .env file loading
 // Read the package.json file for version
@@ -41,21 +43,31 @@ const packageJson = JSON.parse((0, fs_1.readFileSync)(packageJsonPath, 'utf8'));
 const version = packageJson.version;
 // Load environment variables
 const TOKEN = process.env.TOKEN;
+const CLIENT_NAME = process.env.CLIENT_NAME;
 const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_NAME = process.env.GUILD_NAME;
 const GUILD_ID = process.env.GUILD_ID;
+const APACHE_PORT = process.env.APACHE_PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
 const DB_NAME = process.env.DB_NAME;
 const DB_PORT = process.env.DB_PORT;
 const NGROK_AUTH_TOKEN = process.env.NGROK_AUTH_TOKEN;
+const NGROK_HOST = process.env.NGROK_HOST;
 const NGROK_PORT = process.env.NGROK_PORT;
 // Create a new client instance with intents
 const moonlight = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds] });
+// Apache connection setup
+const apache = (0, express_1.default)();
+apache.use(express_1.default.static(path_1.default.join(__dirname, 'public'))); // Serve static files from the "public" folder
+// Start the server
+apache.listen(APACHE_PORT, () => {
+    console.log(`[ Moonlight 🌙 ] >> Apache: Connected and Listening on: (${APACHE_PORT}) - port... ✅`);
+});
 // MySQL connection setup
 let db;
 const setupDatabase = async () => {
-    await setupDatabase(); // Setup the MySQL database
     try {
         db = await promise_1.default.createConnection({
             host: DB_HOST,
@@ -66,6 +78,10 @@ const setupDatabase = async () => {
         // Create the database if it doesn't exist
         await db.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME}`);
         await db.query(`USE ${DB_NAME}`);
+        // Discard the tablespace if it exists
+        await db.query(`SET FOREIGN_KEY_CHECKS = 0`);
+        await db.query(`DROP TABLE IF EXISTS users`);
+        await db.query(`SET FOREIGN_KEY_CHECKS = 1`);
         // Create a users table if it doesn't exist
         await db.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -83,42 +99,32 @@ const setupDatabase = async () => {
         decoration_animated VARCHAR(512)
       )
     `);
-        console.log(`[ Moonlight 🌙 ] >> (${version}) : Database '${DB_NAME}' - Is now online...`);
+        console.log(`[ Moonlight 🌙 ] >> Mysql: "Succesfully" - Connected to the "${DB_NAME}" - database... ✅`);
     }
     catch (err) {
-        console.error(`[ Moonlight 🌙 ] >> (${version}) : Error setting up the database:`, err);
+        console.error(`[ Moonlight 🌙 ] >> Mysql: "Error" - Setting up the database: "${err}"❌`);
     }
 };
 // Start ngrok tunnel
 const startNgrok = async () => {
-    await startNgrok(); // Start ngrok tunneling
     try {
         // Authenticate ngrok using token
         if (NGROK_AUTH_TOKEN) {
             await ngrok_1.default.authtoken(NGROK_AUTH_TOKEN);
         }
         // Start ngrok on the default port 80 (you can adjust this based on your server)
-        const url = await ngrok_1.default.connect(Number(NGROK_PORT));
-        console.log(`[ Moonlight 🌙 ] >> Ngrok Tunnel Started: ${url}`);
-        // You can use this public URL to expose your bot/server to the internet
+        const ngrokUrl = await ngrok_1.default.connect({
+            addr: `${NGROK_HOST}:${NGROK_PORT}`, // Connect to localhost and specified port
+        });
+        // Tunnel 
+        console.log(``);
+        console.log(`[ Moonlight 🌙 ] >> Ngrok: "Succesfully" - Connected to the "tunnel" <-> "${ngrokUrl}" - domain... ✅`);
+        console.log(`[ Moonlight 🌙 ] >> Ngrok: "Succesfully" - Deployed on the "domain" <-> "http://${NGROK_HOST}:${NGROK_PORT}" - host... ✅`);
     }
     catch (error) {
-        console.error(`[ Moonlight 🌙 ] >> Error starting ngrok tunnel:`, error);
+        console.error(`[ Moonlight 🌙 ] >> Ngrok: "Error" - Starting ngrok tunnel server: "${error}"❌`);
     }
 };
-// Register commands when the bot is ready
-moonlight.once('ready', async () => {
-    console.log(`[ Moonlight 🌙 ] >> (${version}) : Is now online...`);
-    const rest = new discord_js_1.REST({ version: '10' }).setToken(TOKEN);
-    try {
-        // Register guild-specific commands
-        await rest.put(discord_js_1.Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-        console.log(`[ Moonlight 🌙 ] >> (${version}) : Successfully reloaded application (/) commands.`);
-    }
-    catch (error) {
-        console.error(error);
-    }
-});
 // Register the /ping command
 const commands = [
     {
@@ -152,9 +158,35 @@ moonlight.on('interactionCreate', async (interaction) => {
             await commandInteraction.reply(`Your User ID ${userId} saved!`);
         }
         catch (err) {
-            console.error(`[ Moonlight 🌙 ] >> (${version}) : Error saving user ID:`, err);
+            console.error(`[ Moonlight 🌙 ] >> Command: "Error" - Saving user ID: ${userId} - ${err} ❌`);
             await commandInteraction.reply('There was an error saving your User ID. Please try again.');
         }
+    }
+});
+///////////////////////////////////////////////////////////////////////////////// START FUNCTIONS
+// Register commands when the bot is ready
+moonlight.once('ready', async () => {
+    await setupDatabase(); // Setup the MySQL database
+    await startNgrok(); // Start ngrok tunneling
+    const rest = new discord_js_1.REST({ version: '10' }).setToken(TOKEN);
+    try {
+        // Register guild-specific commands
+        await rest.put(discord_js_1.Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
+        console.log(``);
+        console.log(`[ Moonlight 🌙 ] >> Information: "${CLIENT_NAME} - ${CLIENT_ID}" | "(${version})" | - version... 📜`);
+        console.log(``);
+        console.log(`[ Moonlight 🌙 ] >> Commands: "Succesfully" - Added application (/) - commands... ✅`);
+        console.log(``);
+        console.log(`[ Moonlight 🌙 ] >> Connection: "Succesfully" - Connected to "${GUILD_NAME} - ${GUILD_ID}" - server... 🚀`);
+        console.log(``);
+        /*     console.log(`[ Moonlight 🌙 ] >> Name: "${CLIENT_NAME}"`);
+            console.log(`[ Moonlight 🌙 ] >> Version: "${version}"`);
+            console.log(`[ Moonlight 🌙 ] >> Server: "${GUILD_NAME} - ${GUILD_ID}"`);
+            console.log(`[ Moonlight 🌙 ] >> Client: "${CLIENT_NAME} - ${CLIENT_ID}"`); */
+        //console.log(`[ Moonlight 🌙 ] >> Connection: "${CLIENT_NAME}" ` + `| ` + `Version: "${version}"` + ` has been connected to the ` + ` (${GUILD_ID}) ` + `server... 🚀`);
+    }
+    catch (error) {
+        console.error(error);
     }
 });
 // Login to Discord with your bot token
