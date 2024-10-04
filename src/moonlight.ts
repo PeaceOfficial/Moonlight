@@ -1,11 +1,11 @@
 // Import necessary classes from discord.js
 import { Client, GatewayIntentBits, CommandInteraction, Interaction, REST, Routes, CommandInteractionOptionResolver } from 'discord.js';
-import { exec } from 'child_process';
 import { readFileSync } from 'fs';
 import path, { join } from 'path';
 import * as dotenv from 'dotenv';
 
 // Import connections modules
+import express from 'express'; // Import express for apache handling - (apache)
 import mysql from 'mysql2/promise'; // Import mysql2/promise for async MySQL connection - (database, mysql)
 import ngrok from 'ngrok'; // Import ngrok for tunneling - (domain, api)
 
@@ -23,6 +23,8 @@ const CLIENT_NAME = process.env.CLIENT_NAME;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_NAME = process.env.GUILD_NAME;
 const GUILD_ID = process.env.GUILD_ID;
+const APACHE_HOST = process.env.APACHE_HOST;
+const APACHE_PORT = process.env.APACHE_PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
@@ -35,8 +37,21 @@ const NGROK_PORT = process.env.NGROK_PORT;
 // Create a new client instance with intents
 const moonlight = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-console.log(`[ Moonlight 🌙 ] >> Apache: Connection created trough "httpd.exe" | Listening on: (80) - port... ✅`);
-console.log(`[ Moonlight 🌙 ] >> Mysql: Connected created trough "mysqld.exe" | Listening on: (3306) - port... ✅`);
+///////////////////////////////////////////////////////////////////////////////// - Express route setup
+/* const apache = express();
+
+// Serve static files from the "public" directory
+apache.use(express.static(path.join(__dirname, '../moonlight/')));
+
+// Add a simple route
+apache.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../moonlight/moonlink/profiles/profiles.php'));
+});
+
+// Start the server
+apache.listen(APACHE_PORT, () => {
+  console.log(`[ Moonlight 🌙 ] >> Apache: Server is listening on : ${APACHE_HOST}:${APACHE_PORT} - host... ✅`);
+}); */
 
 ///////////////////////////////////////////////////////////////////////////////// - MySQL connection setup
 let db: mysql.Connection;
