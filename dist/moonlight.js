@@ -31,7 +31,6 @@ const discord_js_1 = require("discord.js");
 const fs_1 = require("fs");
 const path_1 = require("path");
 const dotenv = __importStar(require("dotenv"));
-// Import connections modules
 const promise_1 = __importDefault(require("mysql2/promise")); // Import mysql2/promise for async MySQL connection - (database, mysql)
 const ngrok_1 = __importDefault(require("ngrok")); // Import ngrok for tunneling - (domain, api)
 // Load environment variables
@@ -46,6 +45,8 @@ const CLIENT_NAME = process.env.CLIENT_NAME;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_NAME = process.env.GUILD_NAME;
 const GUILD_ID = process.env.GUILD_ID;
+//const APACHE_HOST = process.env.APACHE_HOST;
+//const APACHE_PORT = process.env.APACHE_PORT;
 const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
 const DB_PASSWORD = process.env.DB_PASSWORD;
@@ -56,8 +57,21 @@ const NGROK_HOST = process.env.NGROK_HOST;
 const NGROK_PORT = process.env.NGROK_PORT;
 // Create a new client instance with intents
 const moonlight = new discord_js_1.Client({ intents: [discord_js_1.GatewayIntentBits.Guilds] });
-console.log(`[ Moonlight 🌙 ] >> Apache: Connection created trough "httpd.exe" | Listening on: (80) - port... ✅`);
-console.log(`[ Moonlight 🌙 ] >> Mysql: Connected created trough "mysqld.exe" | Listening on: (3306) - port... ✅`);
+///////////////////////////////////////////////////////////////////////////////// - Express route setup
+/* const apache = express();
+
+// Serve static files from the "public" directory
+apache.use(express.static(path.join(__dirname, '../moonlight/')));
+
+// Add a simple route
+apache.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../moonlight/moonlink/profiles/profiles.php'));
+});
+
+// Start the server
+apache.listen(APACHE_PORT, () => {
+  console.log(`[ Moonlight 🌙 ] >> Apache: Server is listening on : ${APACHE_HOST}:${APACHE_PORT} - host... ✅`);
+}); */
 ///////////////////////////////////////////////////////////////////////////////// - MySQL connection setup
 let db;
 const setupDatabase = async () => {
@@ -68,28 +82,47 @@ const setupDatabase = async () => {
             password: DB_PASSWORD,
             port: Number(DB_PORT),
         });
-        // Create the database if it doesn't exist
-        await db.query(`CREATE DATABASE IF NOT EXISTS ${DB_NAME}`);
-        await db.query(`USE ${DB_NAME}`);
-        // Create a users table if it doesn't exist
+        /////////////////////////////////////////////////////////////////////////////////
+        // Create the database if it doesn't exist "MOONLINK"
+        await db.query(`CREATE DATABASE IF NOT EXISTS moonlink`);
+        await db.query(`USE moonlink`);
+        // Create a "PROFILES" table if it doesn't exist ...
         await db.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS profiles (
         userid VARCHAR(512),
+        username VARCHAR(512),
         profile_effect VARCHAR(512),
         avatar VARCHAR(512),
         banner VARCHAR(512),
-        badges VARCHAR(512),
-        badges_icon VARCHAR(512),
-        badges_description VARCHAR(512),
-        badges_id VARCHAR(512),
         decoration VARCHAR(512),
         decoration_asset VARCHAR(512),
         decoration_skuId VARCHAR(512),
         decoration_animated VARCHAR(512)
       )
     `);
+        // Create a "BADGES" table if it doesn't exist ...
+        await db.query(`
+      CREATE TABLE IF NOT EXISTS badges (
+        userid VARCHAR(512),
+        username VARCHAR(512),
+        badges VARCHAR(512),
+        badges_icon VARCHAR(512),
+        badges_description VARCHAR(512)
+      )
+    `);
+        /////////////////////////////////////////////////////////////////////////////////
+        // Create the database if it doesn't exist - "MOONLIGHT"
+        await db.query(`CREATE DATABASE IF NOT EXISTS moonlight`);
+        await db.query(`USE moonlight`);
+        // Create a "USERS" table if it doesn't exist ...
+        await db.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        userid VARCHAR(512),
+        username VARCHAR(512)
+      )
+    `);
         console.log(``);
-        console.log(`[ Moonlight 🌙 ] >> Mysql: "Succesfully" - Connected to the "${DB_NAME}" - database... ✅`);
+        console.log(`[ Moonlight 🌙 ] >> Mysql: "Succesfully" - Connected to the "Moonlink, Moonlight" - database... ✅`);
     }
     catch (err) {
         console.error(`[ Moonlight 🌙 ] >> Mysql: "Error" - Setting up the database: "${err}"❌`);
@@ -102,7 +135,7 @@ const startNgrok = async () => {
         if (NGROK_AUTH_TOKEN) {
             await ngrok_1.default.authtoken(NGROK_AUTH_TOKEN);
         }
-        // Start ngrok on the default port 80 (you can adjust this based on your server)
+        // Start ngrok on the default port "80" (you can adjust this based on your server)
         const ngrokUrl = await ngrok_1.default.connect({
             addr: `${NGROK_HOST}:${NGROK_PORT}`, // Connect to localhost and specified port
         });
