@@ -97,6 +97,7 @@ const setupDatabase = async () => {
       CREATE TABLE IF NOT EXISTS badges (
         userid VARCHAR(512),
         username VARCHAR(512),
+        badges_id VARCHAR(512),
         badges_icon VARCHAR(512),
         badges_description VARCHAR(512),
         PRIMARY KEY (userid)
