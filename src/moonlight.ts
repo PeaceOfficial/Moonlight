@@ -81,8 +81,7 @@ const setupDatabase = async () => {
         banner VARCHAR(512),
         decoration_asset VARCHAR(512),
         decoration_skuId VARCHAR(512),
-        decoration_animated VARCHAR(512) DEFAULT 'true',
-        PRIMARY KEY (userid)
+        decoration_animated VARCHAR(512) DEFAULT 'true'
       )
     `);
 
@@ -91,19 +90,24 @@ const setupDatabase = async () => {
       INSERT IGNORE INTO profiles (userid, username, profile_effect, avatar, banner, decoration_asset, decoration_skuId, decoration_animated) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
        ['317206043039891459', '@peaceofficial', '1139323075519852625', 'http://localhost/moonlink/images/avatar_default.png', 'http://localhost/moonlink/images/banner_default.gif', 'a_250640ab00a8837a1d56f35879138177', '100101099222222', 'true']);
-    
-    // Create a "BADGES" table if it doesn't exist ...
+
+    // Create a "BADGES" table if it doesn't exist with default value ...
     await db.query(`
       CREATE TABLE IF NOT EXISTS badges (
         userid VARCHAR(512),
         username VARCHAR(512),
-        badges_id VARCHAR(512),
-        badges_icon VARCHAR(512),
-        badges_description VARCHAR(512),
-        PRIMARY KEY (userid)
+        badges_id VARCHAR(512) DEFAULT '1',
+        badges_icon VARCHAR(512) DEFAULT 'https://media.tenor.com/lE6NIWFAvmQAAAAi/dark-moon.gif',
+        badges_description VARCHAR(512) DEFAULT 'Im using Moonlink'
       )
     `);
 
+    // Add default insert into "BADGES" table if there is nothing ...
+    await db.query(`
+      INSERT IGNORE INTO badges (userid, username, badges_id, badges_icon, badges_description) 
+      VALUES (?, ?, ?, ?, ?)`,
+       ['317206043039891459', '@peaceofficial', '1', 'https://media.tenor.com/lE6NIWFAvmQAAAAi/dark-moon.gif', 'Im using Moonlink']);
+       
     /////////////////////////////////////////////////////////////////////////////////
 
     // Create the database if it doesn't exist - "MOONLIGHT"
