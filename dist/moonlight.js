@@ -83,44 +83,69 @@ const setupDatabase = async () => {
             port: Number(DB_PORT),
         });
         /////////////////////////////////////////////////////////////////////////////////
-        // Create the database if it doesn't exist "MOONLINK"
-        await db.query(`CREATE DATABASE IF NOT EXISTS moonlink`);
-        await db.query(`USE moonlink`);
-        // Create a "PROFILES" table if it doesn't exist ...
-        await db.query(`
-      CREATE TABLE IF NOT EXISTS profiles (
-        userid VARCHAR(512),
-        username VARCHAR(512),
-        profile_effect VARCHAR(512),
-        avatar VARCHAR(512),
-        banner VARCHAR(512),
-        decoration VARCHAR(512),
-        decoration_asset VARCHAR(512),
-        decoration_skuId VARCHAR(512),
-        decoration_animated VARCHAR(512)
-      )
-    `);
-        // Create a "BADGES" table if it doesn't exist ...
-        await db.query(`
-      CREATE TABLE IF NOT EXISTS badges (
-        userid VARCHAR(512),
-        username VARCHAR(512),
-        badges VARCHAR(512),
-        badges_icon VARCHAR(512),
-        badges_description VARCHAR(512)
-      )
-    `);
-        /////////////////////////////////////////////////////////////////////////////////
-        // Create the database if it doesn't exist - "MOONLIGHT"
+        // Create the database if it doesn't exist - "MOONLIGHT" - for discord bot ...
         await db.query(`CREATE DATABASE IF NOT EXISTS moonlight`);
         await db.query(`USE moonlight`);
         // Create a "USERS" table if it doesn't exist ...
         await db.query(`
       CREATE TABLE IF NOT EXISTS users (
-        userid VARCHAR(512),
+        userid VARCHAR(512) PRIMARY KEY,
         username VARCHAR(512)
       )
     `);
+        /////////////////////////////////////////////////////////////////////////////////
+        // Create the database table: moonlink
+        await db.query(`CREATE DATABASE IF NOT EXISTS moonlink`);
+        await db.query(`USE moonlink`);
+        // Create a "PROFILES" table if it doesn't exist with default value ...
+        await db.query(`
+      CREATE TABLE IF NOT EXISTS profiles (
+        userid VARCHAR(512) PRIMARY KEY,
+        username VARCHAR(512),
+        profile_effect VARCHAR(512),
+        avatar VARCHAR(512),
+        banner VARCHAR(512),
+        decoration_asset VARCHAR(512),
+        decoration_skuId VARCHAR(512),
+        decoration_animated VARCHAR(512) DEFAULT 'true'
+      )
+    `);
+        // Add default insert into moonlink/profiles - "PROFILES" table if there is nothing ...
+        await db.query(`
+      INSERT IGNORE INTO profiles (userid, username, profile_effect, avatar, banner, decoration_asset, decoration_skuId, decoration_animated) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+            '317206043039891459',
+            '@peaceofficial',
+            '1139323075519852625',
+            null,
+            'http://localhost/moonlink/images/banner_default.gif',
+            'a_250640ab00a8837a1d56f35879138177',
+            '100101099222222',
+            'true'
+        ]);
+        /////////////////////////////////////////////////////////////////////////////////
+        // Create a "BADGES" table inside "moonlink-table" if it doesn't exist ...
+        await db.query(`
+      CREATE TABLE IF NOT EXISTS badges (
+        userid VARCHAR(255),
+        username VARCHAR(512),
+        badges_id VARCHAR(255),
+        badges_icon VARCHAR(512),
+        badges_description VARCHAR(512),
+        PRIMARY KEY (userid, badges_id)
+      )
+    `);
+        // Add default insert into "BADGES" table if there is nothing ...
+        await db.query(`
+      INSERT IGNORE INTO badges (userid, username, badges_id, badges_icon, badges_description) 
+      VALUES 
+        (?, ?, ?, ?, ?),
+        (?, ?, ?, ?, ?)
+    `, [
+            '317206043039891459', '@peaceofficial', '1', 'https://media.tenor.com/lE6NIWFAvmQAAAAi/dark-moon.gif', 'Im using Moonlink',
+            '317206043039891459', '@peaceofficial', '2', 'https://media.tenor.com/g4Kc-wDMaOIAAAAi/yay.gif', 'Moonlink - (Owner)'
+        ]);
+        /////////////////////////////////////////////////////////////////////////////////
         console.log(``);
         console.log(`[ Moonlight 🌙 ] >> Mysql: "Succesfully" - Connected to the "Moonlink, Moonlight" - database... ✅`);
     }
